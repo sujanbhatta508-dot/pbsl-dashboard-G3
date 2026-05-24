@@ -1289,8 +1289,12 @@ page = st.sidebar.radio(
     index=0
 )
 uploaded = st.sidebar.file_uploader("Upload Sales CSV", type=["csv"])
-forecast_uploaded = st.sidebar.file_uploader("Upload Notebook Forecast CSV", type=["csv"])
 
+# Forecast file is expected to be already available in the GitHub repository,
+# in the same folder as this app.py file.
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+FORECAST_CSV_PATH = os.path.join(APP_DIR, "branch_forecast_dashboard.csv")
+st.sidebar.caption("Forecast file is loaded automatically from GitHub: branch_forecast_dashboard.csv")
 
 
 if uploaded is None:
@@ -1432,9 +1436,15 @@ forecast_branch_sales = forecast_branch_sales_source.groupby("branch")["net_amou
 weekly_actual = forecast_actual_source.groupby(pd.Grouper(key="date", freq="W-SUN"))["net_amount"].sum().sort_index()
 top_5_branches = branch_sales.head(5).index.tolist()
 top_5_forecast_branches = forecast_branch_sales.head(5).index.tolist()
-# Forecast is read only from notebook-exported CSV.
-# No model is trained or forecast is generated inside this dashboard.
-branch_forecast_df, branch_forecast_found = read_branch_forecast(uploaded_file=forecast_uploaded)
+# Forecast is read automatically from the notebook-exported CSV already stored in GitHub.
+# No separate forecast upload is required from the dashboard user.
+branch_forecast_df, branch_forecast_found = read_branch_forecast(path=FORECAST_CSV_PATH)
+
+if not branch_forecast_found:
+    st.warning(
+        "Forecast CSV was not found in the GitHub/app folder. "
+        "Please make sure branch_forecast_dashboard.csv is committed beside app.py."
+    )
 
 if branch_forecast_found:
     forecast_raw = branch_forecast_df.copy()
